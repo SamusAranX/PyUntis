@@ -1,0 +1,9 @@
+{
+	"school": {
+		"name": "Max-Mustermann-Schule",
+		"username": "admin",
+		"password": "swordfish"
+	},
+	"plan_dir": "/var/www/plan/plans",
+	"locale": "de_DE.UTF-8"
+}

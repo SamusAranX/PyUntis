@@ -91,4 +91,6 @@ ENV/
 
 # PyUntis-related stuff
 teachers.json
+config.json
 generate_plan.sh
+old/

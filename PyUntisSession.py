@@ -14,7 +14,7 @@ class PyUntisSession:
     JSON_API_FORMAT = "https://{0}/WebUntis/jsonrpc.do{1}"
     HTML_API_FORMAT = "https://{0}/WebUntis/Timetable.do"
     
-    USER_AGENT = "PyUntis"
+    USER_AGENT = "PyUntis 2.0"
     
     def __init__(self):
         self.headers = { "User-Agent": self.USER_AGENT, "Content-Type": "application/json;charset=UTF-8", "Cache-Control": "no-cache" }
@@ -85,7 +85,7 @@ class PyUntisSession:
         payload = self._build_payload("getStudents")
         response = self._post(payload)
         
-        # return list of PyUntisStudent objects
+        # return list of PyUntisStudent objects (untested)
         return [PyUntisStudent(s) for s in response]
         
     def getKlassen(self, schoolyear_id=None):
@@ -117,6 +117,13 @@ class PyUntisSession:
         response = self._post(payload)
         
         return [PyUntisHoliday(h) for h in response]
+        
+    def getTimegridUnits(self):
+        payload = self._build_payload("getTimegridUnits")
+        response = self._post(payload)
+        
+        # return response
+        return [PyUntisDayGrid(tu) for tu in response]
     
     def getStatusData(self):
         payload = self._build_payload("getStatusData")

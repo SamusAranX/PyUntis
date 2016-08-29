@@ -17,8 +17,8 @@ class PyUntisSession:
     USER_AGENT = "PyUntis 2.0"
     
     def __init__(self):
-        self.headers = { "User-Agent": self.USER_AGENT, "Content-Type": "application/json;charset=UTF-8", "Cache-Control": "no-cache" }
-        self.cookies = {}
+        self.session = requests.Session()
+        self.session.headers = { "User-Agent": self.USER_AGENT, "Content-Type": "application/json;charset=UTF-8", "Cache-Control": "no-cache" }
         
         self.servername = ""
         self.requestID = 0
@@ -36,7 +36,7 @@ class PyUntisSession:
     def searchSchools(self, searchString):
         payload = self._build_payload("searchSchool", shitty_untis_api_hack=True, search = searchString)
         
-        r = requests.post(self.SCHOOLQUERY_URL, json = payload, headers = self.headers)
+        r = self.session.post(self.SCHOOLQUERY_URL, json = payload)
         response = r.json()
         
         if "error" in response:
@@ -48,10 +48,7 @@ class PyUntisSession:
     def _post(self, payload, **url_params):
         json_api_url = self.JSON_API_FORMAT.format(self.servername, "?" + urlencode(url_params))
         
-        # print(json_api_url)
-        # print(payload)
-        
-        r = requests.post(json_api_url, json = payload, cookies = self.cookies, headers = self.headers)
+        r = self.session.post(json_api_url, json = payload)
         response = r.json()
         
         if "error" in response:

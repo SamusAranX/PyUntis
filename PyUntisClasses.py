@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 #-*- coding: utf-8 -*-
 from datetime import datetime
+from collections.abc import Sequence
    
 class PyUntisError(Exception):
     WEBUNTIS_ERRORS = {
@@ -42,6 +43,24 @@ class PyUntisDate:
             
     def make_readable(self):
         return self.date.strftime(self.READABLE_DATE_FMT)
+        
+    def __eq__(self, date2):
+        return self.untis_date == date2.untis_date
+        
+    def __lt__(self, date2):
+        return int(self.untis_date) < int(date2.untis_date)
+        
+    def __le__(self, date2):
+        return int(self.untis_date) <= int(date2.untis_date)
+        
+    def __gt__(self, date2):
+        return int(self.untis_date) > int(date2.untis_date)
+        
+    def __ge__(self, date2):
+        return int(self.untis_date) >= int(date2.untis_date)
+        
+    def __hash__(self):
+        return int(self.untis_date)
             
     def __repr__(self):
         return "{0} (\"{1}\")".format(self.date.strftime(self.READABLE_DATE_FMT), self.untis_date)
@@ -63,6 +82,24 @@ class PyUntisTime:
             
     def make_readable(self):
         return self.time.strftime(self.READABLE_TIME_FMT)
+        
+    def __eq__(self, time2):
+        return self.untis_time == time2.untis_time
+        
+    def __lt__(self, time2):
+        return int(self.untis_time) < int(time2.untis_time)
+        
+    def __le__(self, time2):
+        return int(self.untis_time) <= int(time2.untis_time)
+        
+    def __gt__(self, time2):
+        return int(self.untis_time) > int(time2.untis_time)
+        
+    def __ge__(self, time2):
+        return int(self.untis_time) >= int(time2.untis_time)
+        
+    def __hash__(self):
+        return int(self.untis_time)
             
     def __repr__(self):
         return "{0} (\"{1}\")".format(self.time.strftime(self.READABLE_TIME_FMT), self.untis_time)
@@ -177,10 +214,17 @@ class PyUntisTimeUnit:
             "endTimeUntis": self.end_time.untis_time,
         }
         
-class PyUntisDayGrid:
+class PyUntisDayGrid(Sequence):
     def __init__(self, daygrid_json):
         self.day = (int(daygrid_json["day"]) - 2) % 7
         self.time_units = [PyUntisTimeUnit(tu) for tu in daygrid_json["timeUnits"]]
+        super().__init__()
+        
+    def __getitem__(self, i):
+        return self.time_units[i]
+        
+    def __len__(self):
+        return len(self.time_units)
         
     def __repr__(self):
         return "Day {0}: {1}".format(self.day, self.time_units)
@@ -220,11 +264,14 @@ class PyUntisTimetableEntry:
         self.subst_text = tt_entry_json.get("substText")
         
     def __repr__(self):
-        return "Subject(s) {0} in room(s) {1} with class(es) {2} on {3} from {4} to {5} (Code: {6})".format(
-            [s.name or s.id for s in self.subjects],
-            [r.name or r.id for r in self.rooms],
-            [c.name or c.id for c in self.classes],
-            self.date.make_readable(), self.start_time.make_readable(), self.end_time.make_readable(), self.code
+        return "{date} {start_time} - {end_time}: Subject(s) {subjects} in room(s) {rooms} with class(es) {classes} (Code: {code})".format(
+            subjects = [s.name or s.id for s in self.subjects],
+            rooms = [r.name or r.id for r in self.rooms],
+            classes = [c.name or c.id for c in self.classes],
+            date = self.date.make_readable(),
+            start_time = self.start_time.make_readable(), 
+            end_time = self.end_time.make_readable(), 
+            code = self.code
         )
         
 class PyUntisReschedule:

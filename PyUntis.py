@@ -19,8 +19,8 @@ def daterange(start_date, end_date):
 # A weekday index of 0, together with a week index of 0, will get you this week's monday.
 # A weekday index of 4 would get you this week's friday.
 # A week index of 1 would get you next week's monday or friday and so on.
-def get_other_days_of_week(weekday_index, week_index):
-    day = datetime.now()
+def get_other_weekday(weekday_index, week_index, start_day=None):
+    day = start_day.date if start_day else datetime.now()
     new_date = day - timedelta(days = day.weekday()) + timedelta(days = weekday_index) + timedelta(days = week_index * 7)
     return PyUntisDate(date=new_date)
     
@@ -44,6 +44,7 @@ def load_teachers_from_file(f):
     
 # len(box_chars) MUST be an odd number
 # "╔╦═╦╗" is a valid box_chars string, for example
+# 0 is left, 1 is center, 2 is right
 def box_print(box_chars, str="", mode=1):
     OUTPUT_WIDTH = 50
     assert len(box_chars) % 2 == 1
@@ -91,7 +92,6 @@ schools = s.searchSchools(config["school"]["name"])
 assert len(schools) >= 1, "Can't find school"
 
 auth = s.authenticate(schools[0], config["school"]["username"], config["school"]["password"])
-s.cookies = dict(JSESSIONID = auth.session_id)
 
 box_print("║   ║", "Authenticated.", 0)
 box_print("╠═╣", "meta.json".upper())
@@ -108,9 +108,9 @@ meta_full = "{0}|{1}"
 meta_small = "{0}.,|{1}"
 
 # Get the first days of this week and the next two weeks
-week1_mon = get_other_days_of_week(weekday_index = 0, week_index = 0)
-week2_mon = get_other_days_of_week(weekday_index = 0, week_index = 1)
-week3_mon = get_other_days_of_week(weekday_index = 0, week_index = 2)
+week1_mon = get_other_weekday(weekday_index = 0, week_index = 0)
+week2_mon = get_other_weekday(weekday_index = 0, week_index = 1)
+week3_mon = get_other_weekday(weekday_index = 0, week_index = 2)
 
 # Add date display formats to meta object
 meta["week1Full"] = [meta_full.format(day_name[w], (week1_mon.date + timedelta(days = w)).strftime("%d.%m.%Y")) for w in range(0,5)]
@@ -175,36 +175,44 @@ meta["lastGenerated"] = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
 
 box_print("║   ║", "Writing meta.json…", 0)
 with open(os.path.join(plan_dir, "meta.json"), mode="w", encoding="utf-8") as meta_file:
-    meta_file.write(json.dumps(meta, ensure_ascii = False))
-    # meta_file.write(json.dumps(meta, sort_keys = True, indent = 2, ensure_ascii = False))
+    # meta_file.write(json.dumps(meta, ensure_ascii = False))
+    meta_file.write(json.dumps(meta, ensure_ascii = False, indent = 2))
     box_print("║   ║", "Done.", 0)
+    
+#####
+# Part where we create timetable files for the web interface
+#####
     
 box_print("╠═╣", "Timetable JSON files".upper())
 
 box_print("║   ║", "Requesting substitution data…", 0)
 substitutions = s.getSubstitutions(start_date = "20160824", end_date = "20160826")
 
-for kl in classes_sorted:
+for kl in [k for k in classes if k.id == 301]:
     box_print("║   ║", "Requesting timetables for {0}…".format(kl), 0)
-    week3_fri = get_other_days_of_week(weekday_index = 4, week_index = 2) # Get the last school day of the week after next
+    week3_fri = get_other_weekday(weekday_index = 4, week_index = 2) # Get the last school day of the week after next
     
+    # Clamp start and end dates. If one of these dates lies 
     clamped_start_date = str(max(int(current_schoolyear.start_date.untis_date), int(week1_mon.untis_date)))
     clamped_end_date = str(min(int(current_schoolyear.end_date.untis_date), int(week3_fri.untis_date)))
     
-    tt = s.getTimetableCustom(kl.id, PyUntisElementType.CLASS, 
+    timetable = s.getTimetableCustom(kl.id, PyUntisElementType.CLASS, 
         start_date = clamped_start_date, end_date = clamped_end_date,
         showInfo = True, showSubstText = True, showLsText = True, showLsNumber = True, showStudentgroup = True)
+        
+    timetable_days = sorted(list(set([t.date for t in timetable])))
     
-    week_mondays = [week1_mon, week2_mon, week3_mon]
-    for week_index in range(0, 3):
-        monday = week_mondays[week_index]
-        for day_index in range(0, 5):
-            get_other_days_of_week(monday, weekday_index = day_index, week_index = 0)
+    timetable_json = {}
+    for date in timetable_days:
+        day_lessons = sorted([t for t in timetable if t.date == date], key=lambda l: l.start_time)
+        date_timeunits = timegrid[date.date.weekday()]
+        for lesson in day_lessons:
+            print(next(tu for tu in date_timeunits if tu.start_time == lesson.start_time))
             
-            # do stuff
+        sys.exit(0)
             
 
-
+box_print("║   ║", "Logging out.", 0)
 s.logout()
 
 tock = datetime.now()

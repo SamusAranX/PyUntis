@@ -6,7 +6,7 @@ import sys
 import os
 import math
 import json
-import icu, locale # This ensures that lists with non-ASCII characters will still be properly sorted
+import locale # This ensures that lists with non-ASCII characters will still be properly sorted
 from calendar import day_name, day_abbr
 from PyUntisClasses import *
 from PyUntisSession import PyUntisSession
@@ -84,7 +84,11 @@ box_print("║   ║", "Loaded.", 0)
 plan_dir = config["plan_dir"]
 os.makedirs(plan_dir, exist_ok=True)
 
-collator = icu.Collator.createInstance(icu.Locale(config["locale"]))
+try:
+    import icu
+    collator = icu.Collator.createInstance(icu.Locale(config["locale"]))
+except ImportError:
+    box_print("║   ║", "Install PyICU for better list sorting.", 0)
 
 box_print("║   ║", "Looking for school and authenticating…", 0)
 
@@ -207,7 +211,8 @@ for kl in [k for k in classes if k.id == 301]:
         day_lessons = sorted([t for t in timetable if t.date == date], key=lambda l: l.start_time)
         date_timeunits = timegrid[date.date.weekday()]
         for lesson in day_lessons:
-            print(next(tu for tu in date_timeunits if tu.start_time == lesson.start_time))
+            lesson_timeunit = next(tu for tu in date_timeunits if tu.start_time == lesson.start_time)
+            print(lesson)
             
         sys.exit(0)
             

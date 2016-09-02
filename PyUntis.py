@@ -11,9 +11,10 @@ from calendar import day_name, day_abbr
 from PyUntisClasses import *
 from PyUntisSession import PyUntisSession
 
-# http://stackoverflow.com/questions/1060279/iterating-through-a-range-of-dates-in-python
+# Modified from http://stackoverflow.com/questions/1060279/iterating-through-a-range-of-dates-in-python
 def daterange(start_date, end_date):
-    for n in range(int ((end_date - start_date).days)):
+    # Add a day to end_date to make it inclusive
+    for n in range(int((end_date + timedelta(days = 1) - start_date).days)):
         yield start_date + timedelta(n)
         
 # A weekday index of 0, together with a week index of 0, will get you this week's monday.
@@ -196,23 +197,62 @@ for kl in [k for k in classes if k.id == 301]:
     box_print("║   ║", "Requesting timetables for {0}…".format(kl), 0)
     week3_fri = get_other_weekday(weekday_index = 4, week_index = 2) # Get the last school day of the week after next
     
-    # Clamp start and end dates. If one of these dates lies 
-    clamped_start_date = str(max(int(current_schoolyear.start_date.untis_date), int(week1_mon.untis_date)))
-    clamped_end_date = str(min(int(current_schoolyear.end_date.untis_date), int(week3_fri.untis_date)))
+    # Clamp start and end dates. If one of these dates is not within the schoolyear start and end dates, the API will return an error
+    clamped_start_date = max(current_schoolyear.start_date, week1_mon)
+    clamped_end_date = min(current_schoolyear.end_date, week3_fri)
+    # clamped_start_date = str(max(int(current_schoolyear.start_date.untis_date), int(week1_mon.untis_date)))
+    # clamped_end_date = str(min(int(current_schoolyear.end_date.untis_date), int(week3_fri.untis_date)))
     
     timetable = s.getTimetableCustom(kl.id, PyUntisElementType.CLASS, 
-        start_date = clamped_start_date, end_date = clamped_end_date,
+        start_date = clamped_start_date.untis_date, end_date = clamped_end_date.untis_date,
         showInfo = True, showSubstText = True, showLsText = True, showLsNumber = True, showStudentgroup = True)
         
-    timetable_days = sorted(list(set([t.date for t in timetable])))
+    timetable_days = [PyUntisDate(d) for d in daterange(clamped_start_date.date, clamped_end_date.date) if d.weekday() < 5]
+    # print(timetable_days)
     
     timetable_json = {}
     for date in timetable_days:
+        day_json = {}
+        
+        date_week = math.floor(timetable_days.index(date) / 5) # zero-based week index
+        
         day_lessons = sorted([t for t in timetable if t.date == date], key=lambda l: l.start_time)
+        if len(day_lessons) == 0:
+            continue # skip days without any lessons
+        
         date_timeunits = timegrid[date.date.weekday()]
+        
+        last_start_time = 0
         for lesson in day_lessons:
-            lesson_timeunit = next(tu for tu in date_timeunits if tu.start_time == lesson.start_time)
-            print(lesson)
+            lesson_json = {}            
+            lesson_json["subject"] = lesson.subjects[0].name if lesson.subjects else "???"
+            
+            # Remove leading zeros from room names like "022", "001" and so on
+            lesson_json["room"] = lesson.rooms[0].name.lstrip("0") if lesson.rooms else "???"
+    
+            lesson_json["classes"] = [kl.name for kl in lesson.classes]
+            lesson_json["code"] = lesson.code or ""
+            
+            lesson_json["dateUntis"] = lesson.date.untis_date
+            lesson_json["dateReadable"] = lesson.date.make_readable()
+            
+            lesson_json["startTimeUntis"] = lesson.start_time.untis_time
+            lesson_json["startTimeReadable"] = lesson.start_time.make_readable()
+            lesson_json["endTimeUntis"] = lesson.end_time.untis_time
+            lesson_json["endTimeReadable"] = lesson.end_time.make_readable()
+            
+            # note for later: test.sort(function(a, b) { return a.localeCompare(b);})
+            if last_start_time != lesson.start_time.untis_time:
+                # This is a new time slot, create new lesson
+                day_json[lesson.start_time.untis_time] = [lesson_json]
+            else:
+                # This time slot already exists, append lesson
+                day_json[lesson.start_time.untis_time].append(lesson_json)
+            
+            last_start_time = lesson.start_time.untis_time
+            
+        print(day_json)
+        
             
         sys.exit(0)
             

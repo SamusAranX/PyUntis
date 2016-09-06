@@ -94,3 +94,4 @@ teachers.json
 config.json
 generate_plan.sh
 old/
+.DS_Store

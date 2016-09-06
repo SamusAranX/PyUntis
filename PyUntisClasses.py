@@ -125,6 +125,7 @@ class PyUntisAuthResult:
 class PyUntisTeacher:
     def __init__(self, teacher_json):
         self.id = teacher_json["id"]
+        self.original_id = teacher_json.get("orgid") # only used in substitutions
         self.name = teacher_json.get("name")
         self.fore_name = teacher_json.get("foreName")
         self.long_name = teacher_json.get("longName")
@@ -152,6 +153,9 @@ class PyUntisClass:
         self.active = class_json.get("active") # optional depending on context
         self.did = class_json.get("did") # optional
         
+    def __eq__(self, class2):
+        return self.name == class2.name
+        
     def __repr__(self):
         return self.name or self.id
         
@@ -163,6 +167,9 @@ class PyUntisSubject:
         self.active = subject_json.get("active") # optional depending on context
         self.did = subject_json.get("did") # optional
         
+    def __eq__(self, subject2):
+        return self.name == subject2.name
+        
     def __repr__(self):
         return self.name or self.id
         
@@ -170,11 +177,19 @@ class PyUntisRoom:
     def __init__(self, room_json):
         self.id = room_json["id"]
         self.name = room_json.get("name")
+        
+        # both of these are only used in substitutions
+        self.original_id = room_json.get("orgid") 
+        self.original_name = room_json.get("orgname")
+        
         self.long_name = room_json.get("longName")
         self.active = room_json.get("active") # optional depending on context
         self.building = room_json.get("building") # optional depending on context
         self.fore_color = room_json.get("foreColor") # optional
         self.back_color = room_json.get("backColor") # optional
+        
+    def __eq__(self, room2):
+        return self.name == room2.name
         
     def __repr__(self):
         return self.name or self.id
@@ -192,6 +207,15 @@ class PyUntisHoliday:
         self.long_name = holiday_json["longName"]
         self.start_date = PyUntisDate(untis_date = holiday_json["startDate"])
         self.end_date = PyUntisDate(untis_date = holiday_json["endDate"])
+        
+    def to_json(self):
+        return {
+            "name": self.long_name,
+            "startDate": self.start_date.make_readable(),
+            "endDate": self.end_date.make_readable(),
+            "startDateUntis": self.start_date.untis_date,
+            "endDateUntis": self.end_date.untis_date
+        } 
         
     def __repr__(self):
         return "{0}: {1} - {2}".format(self.long_name, self.start_date.make_readable(), self.end_date.make_readable())
@@ -244,6 +268,15 @@ class PyUntisSchoolyear:
         self.start_date = PyUntisDate(untis_date = year_json["startDate"])
         self.end_date = PyUntisDate(untis_date = year_json["endDate"])
         
+    def to_json(self):
+        return {
+            "name": self.name,
+            "startDate": self.start_date.make_readable(),
+            "endDate": self.end_date.make_readable(),
+            "startDateUntis": self.start_date.untis_date,
+            "endDateUntis": self.end_date.untis_date
+        }
+        
     def __repr__(self):
         return "{0}: {1} - {2}".format(self.name, self.start_date, self.end_date)
         
@@ -262,6 +295,26 @@ class PyUntisTimetableEntry:
         self.student_group = tt_entry_json.get("sg")
         self.lesson_number = tt_entry_json.get("lsnumber")
         self.subst_text = tt_entry_json.get("substText")
+        
+    def to_json(self):
+        entry_json = {}            
+        entry_json["subject"] = self.subjects[0].name if self.subjects else "???"
+        
+        # Remove leading zeros from room names like "022", "001" and so on
+        entry_json["room"] = self.rooms[0].name.lstrip("0") if self.rooms else "???"
+
+        entry_json["classes"] = [kl.name for kl in self.classes]
+        entry_json["code"] = self.code or ""
+        
+        entry_json["dateUntis"] = self.date.untis_date
+        entry_json["dateReadable"] = self.date.make_readable()
+        
+        entry_json["startTimeUntis"] = self.start_time.untis_time
+        entry_json["startTimeReadable"] = self.start_time.make_readable()
+        entry_json["endTimeUntis"] = self.end_time.untis_time
+        entry_json["endTimeReadable"] = self.end_time.make_readable()
+        
+        return entry_json
         
     def __repr__(self):
         return "{date} {start_time} - {end_time}: Subject(s) {subjects} in room(s) {rooms} with class(es) {classes} (Code: {code})".format(
@@ -300,6 +353,41 @@ class PyUntisSubstitution:
         self.text = subst_json.get("txt")
         
         self.reschedule = PyUntisReschedule(subst_json["reschedule"]) if "reschedule" in subst_json else None
+        
+    def to_json(self):
+        if not self.subjects:
+            # This substitution object is useless without subject information
+            return None
+        
+        subst_json = {}
+        subst_json["type"] = self.type
+        
+        subst_json["date"] = self.date.untis_date
+        subst_json["readableDate"] = self.date.make_readable()
+        subst_json["time"] = self.start_time.untis_time
+        subst_json["readableTime"] = self.start_time.make_readable()
+        
+        subst_json["subject"] = self.subjects[0].long_name if self.subjects else ""
+        subst_json["room"] = self.rooms[0].name if self.rooms else ""
+        
+        if self.teachers:
+            te = self.teachers[0]
+            subst_teacher = { "newTeacher": te.id }
+            if te.original_id:
+                subst_teacher["oldTeacher"] = te.original_id
+            subst_json["teacher"] = subst_teacher
+            
+        if self.rooms:
+            ro = self.rooms[0]
+            subst_room = { "newRoom": ro.name }
+            if ro.original_name:
+                subst_room["oldRoom"] = ro.original_name
+            subst_json["room"] = subst_room
+            
+        if self.text:
+            subst_json["text"] = self.text
+        
+        return subst_json        
         
     def __repr__(self):
         return "Substitution for class(es) {0} in room(s) {1} on {2}: {3} from {4} to {5} -> {6}".format(

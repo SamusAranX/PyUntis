@@ -16,7 +16,7 @@ def daterange(start_date, end_date):
     # Add a day to end_date to make it inclusive
     for n in range(int((end_date + timedelta(days = 1) - start_date).days)):
         yield start_date + timedelta(n)
-        
+
 # A weekday index of 0, together with a week index of 0, will get you this week's monday.
 # A weekday index of 4 would get you this week's friday.
 # A week index of 1 would get you next week's monday or friday and so on.
@@ -24,7 +24,7 @@ def get_other_weekday(weekday_index, week_index, start_day=None):
     day = start_day.date if start_day else datetime.now()
     new_date = day - timedelta(days = day.weekday()) + timedelta(days = weekday_index) + timedelta(days = week_index * 7)
     return PyUntisDate(date=new_date)
-    
+
 # In case your school doesn't give your Untis account
 # the privileges necessary to use getTeachers(),
 # you can use this workaround.
@@ -42,7 +42,7 @@ def load_teachers_from_file(f):
         } for key in t_keys]
         
         return [PyUntisTeacher(t) for t in t_list]
-    
+
 # len(box_chars) MUST be an odd number
 # "╔╦═╦╗" is a valid box_chars string, for example
 # 0 is left, 1 is center, 2 is right
@@ -126,7 +126,6 @@ meta["week1Small"] = [meta_small.format(day_abbr[w], (week1_mon.date + timedelta
 meta["week2Small"] = [meta_small.format(day_abbr[w], (week2_mon.date + timedelta(days = w)).strftime("%d.%m.")) for w in range(0,5)]
 meta["week3Small"] = [meta_small.format(day_abbr[w], (week3_mon.date + timedelta(days = w)).strftime("%d.%m.")) for w in range(0,5)]
 
-
 # Add school year information to meta object
 box_print("║   ║", "Requesting school year information…")
 current_schoolyear = s.getCurrentSchoolyear()
@@ -136,7 +135,7 @@ meta["currentSchoolyear"] = current_schoolyear.to_json()
 box_print("║   ║", "Requesting holiday information…")
 holidays = s.getHolidays()
 meta["holidays"] = [h.to_json() for h in holidays]
-    
+
 # Add school classes and IDs to meta object
 box_print("║   ║", "Requesting class information…")
 classes = s.getKlassen()
@@ -169,15 +168,15 @@ box_print("║   ║", "Writing meta.json…")
 with open(os.path.join(plan_dir, "meta.json"), mode="w", encoding="utf-8") as meta_file:
     meta_file.write(json.dumps(meta, ensure_ascii = False))
     box_print("║   ║", "Done.")
-    
+
 #####
 # Part where we create timetable files for the web interface
 #####
-    
+
 box_print("╠═╣", "Timetable JSON files".upper(), "center")
 
 week3_fri = get_other_weekday(weekday_index = 4, week_index = 2) # Get the last school day of the week after next
-    
+
 # Clamp start and end dates. If one of these dates is not within the schoolyear start and end dates, the API will return an error
 clamped_start_date = max(current_schoolyear.start_date, week1_mon)
 clamped_end_date = min(current_schoolyear.end_date, week3_fri)
@@ -235,7 +234,7 @@ for kl in classes:
     with open(os.path.join(plan_dir, plan_file_name), mode="w", encoding="utf-8") as plan_file:
         plan_file.write(timetable_dumped)
         box_print("║   ║", "{0} written.".format(plan_file_name), "right")
-        
+
 box_print("║   ║")
 box_print("║   ║", "Logging out.", "center")
 s.logout()

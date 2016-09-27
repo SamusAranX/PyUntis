@@ -139,7 +139,11 @@ meta["holidays"] = [h.to_json() for h in holidays]
 # Add school classes and IDs to meta object
 box_print("║   ║", "Requesting class information…")
 classes = s.getKlassen()
-classes_sorted = sorted(classes, key=lambda kl: collator.getSortKey(kl.name.lower()))
+try:
+    classes_sorted = sorted(classes, key=lambda kl: collator.getSortKey(kl.name.lower()))
+except NameError:
+    classes_sorted = sorted(classes, key=lambda kl: kl.name.lower())
+    
 meta["classes"] = {
     "names": [kl.name for kl in classes_sorted],
     "ids": [kl.id for kl in classes_sorted],
@@ -162,7 +166,11 @@ for tg in timegrid:
 
 box_print("║   ║", "Adding last update times…")
 meta["lastUpdated"] = s.getLatestImportTime().strftime("%d.%m.%Y %H:%M:%S")
-meta["lastGenerated"] = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
+meta["lastUpdatedISO8601"] = s.getLatestImportTime().strftime("%Y-%m-%d %H:%M:%S")
+
+lastGeneratedDate = datetime.now()
+meta["lastGenerated"] = lastGeneratedDate.strftime("%d.%m.%Y %H:%M:%S")
+meta["lastGeneratedISO8601"] = lastGeneratedDate.strftime("%Y-%m-%d %H:%M:%S")
 
 box_print("║   ║", "Writing meta.json…")
 with open(os.path.join(plan_dir, "meta.json"), mode="w", encoding="utf-8") as meta_file:
@@ -234,13 +242,14 @@ for kl in classes:
     with open(os.path.join(plan_dir, plan_file_name), mode="w", encoding="utf-8") as plan_file:
         plan_file.write(timetable_dumped)
         box_print("║   ║", "{0} written.".format(plan_file_name), "right")
+        
+box_print("╠╦═╦╣")
+box_print("║║ ║║", "Logging out…", "center")
 
-box_print("║   ║")
-box_print("║   ║", "Logging out.", "center")
 s.logout()
 
 tock = datetime.now()
 diff = tock - tick
-box_print("╠╦═╦╣")
+
 box_print("║║ ║║", "Finished in {0}".format(diff), "center")
 box_print("╚╩═╩╝")

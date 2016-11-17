@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-#-*- coding: utf-8 -*-
+#coding=utf-8
+
 from urllib.parse import urlencode
 from datetime import datetime, timedelta, date
 import sys
@@ -81,6 +82,8 @@ config_json = open("config.json", "r", encoding="utf8")
 config = json.load(config_json)
 config_json.close()
 
+locale.setlocale(locale.LC_ALL, config["locale"])
+
 box_print("║   ║", "Loaded.")
 
 plan_dir = config["plan_dir"]
@@ -110,8 +113,8 @@ box_print("║   ║", "Setting up date formats…")
 
 # Set up the object itself, along with full and small date formats
 meta = {}
-meta_full = "{0}|{1}"
-meta_small = "{0}.,|{1}"
+meta_long = "{0}<br>{1}"
+meta_short = "{0}.,<br>{1}"
 
 # Get the first days of this week and the next two weeks
 week1_mon = get_other_weekday(weekday_index = 0, week_index = 0)
@@ -119,12 +122,14 @@ week2_mon = get_other_weekday(weekday_index = 0, week_index = 1)
 week3_mon = get_other_weekday(weekday_index = 0, week_index = 2)
 
 # Add date display formats to meta object
-meta["week1Full"] = [meta_full.format(day_name[w], (week1_mon.date + timedelta(days = w)).strftime("%d.%m.%Y")) for w in range(0,5)]
-meta["week2Full"] = [meta_full.format(day_name[w], (week2_mon.date + timedelta(days = w)).strftime("%d.%m.%Y")) for w in range(0,5)]
-meta["week3Full"] = [meta_full.format(day_name[w], (week3_mon.date + timedelta(days = w)).strftime("%d.%m.%Y")) for w in range(0,5)]
-meta["week1Small"] = [meta_small.format(day_abbr[w], (week1_mon.date + timedelta(days = w)).strftime("%d.%m.")) for w in range(0,5)]
-meta["week2Small"] = [meta_small.format(day_abbr[w], (week2_mon.date + timedelta(days = w)).strftime("%d.%m.")) for w in range(0,5)]
-meta["week3Small"] = [meta_small.format(day_abbr[w], (week3_mon.date + timedelta(days = w)).strftime("%d.%m.")) for w in range(0,5)]
+meta["weekDatesLong"] = []
+meta["weekDatesShort"] = []
+meta["weekDatesLong"].append([meta_long.format(day_name[w], (week1_mon.date + timedelta(days = w)).strftime("%d.%m.%Y")) for w in range(0,5)])
+meta["weekDatesLong"].append([meta_long.format(day_name[w], (week2_mon.date + timedelta(days = w)).strftime("%d.%m.%Y")) for w in range(0,5)])
+meta["weekDatesLong"].append([meta_long.format(day_name[w], (week3_mon.date + timedelta(days = w)).strftime("%d.%m.%Y")) for w in range(0,5)])
+meta["weekDatesShort"].append([meta_short.format(day_abbr[w], (week1_mon.date + timedelta(days = w)).strftime("%d.%m.")) for w in range(0,5)])
+meta["weekDatesShort"].append([meta_short.format(day_abbr[w], (week2_mon.date + timedelta(days = w)).strftime("%d.%m.")) for w in range(0,5)])
+meta["weekDatesShort"].append([meta_short.format(day_abbr[w], (week3_mon.date + timedelta(days = w)).strftime("%d.%m.")) for w in range(0,5)])
 
 # Add school year information to meta object
 box_print("║   ║", "Requesting school year information…")
@@ -165,8 +170,9 @@ for tg in timegrid:
     meta["timegrid"].insert(tg.day, tg.to_json())
 
 box_print("║   ║", "Adding last update times…")
-meta["lastUpdated"] = s.getLatestImportTime().strftime("%d.%m.%Y %H:%M:%S")
-meta["lastUpdatedISO8601"] = s.getLatestImportTime().strftime("%Y-%m-%d %H:%M:%S")
+last_update = s.getLatestImportTime()
+meta["lastUpdated"] = last_update.strftime("%d.%m.%Y %H:%M:%S")
+meta["lastUpdatedISO8601"] = last_update.strftime("%Y-%m-%d %H:%M:%S")
 
 lastGeneratedDate = datetime.now()
 meta["lastGenerated"] = lastGeneratedDate.strftime("%d.%m.%Y %H:%M:%S")

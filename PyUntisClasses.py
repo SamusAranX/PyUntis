@@ -366,8 +366,6 @@ class PyUntisSubstitution:
         subst_json["readableDate"] = self.date.make_readable()
         subst_json["time"] = self.start_time.untis_time
         subst_json["readableTime"] = self.start_time.make_readable()
-
-        print("to_json(): {0}".format(self.subjects))
         
         subst_json["subject"] = self.subjects[0].name
         subst_json["room"] = self.rooms[0].name if self.rooms else ""

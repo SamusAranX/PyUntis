@@ -1,2 +1,2 @@
 cd /root/PyUntis/
-stdbuf -oL ./newuntis.py > /var/www/plan/plan.log 2>&1
+stdbuf -oL python3 PyUntis.py > plan.log 2>&1

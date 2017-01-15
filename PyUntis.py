@@ -1,6 +1,4 @@
-#!/usr/bin/env python3
 #coding=utf-8
-
 from urllib.parse import urlencode
 from datetime import datetime, timedelta, date
 import sys

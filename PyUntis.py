@@ -80,7 +80,10 @@ config_json = open("config.json", "r", encoding="utf8")
 config = json.load(config_json)
 config_json.close()
 
-locale.setlocale(locale.LC_ALL, config["locale"])
+try:
+	locale.setlocale(locale.LC_ALL, config["locale"])
+except:
+	box_print("║   ║", "Unsupported locale: " + config["locale"])
 
 box_print("║   ║", "Loaded.")
 
@@ -178,7 +181,7 @@ meta["lastGeneratedISO8601"] = lastGeneratedDate.strftime("%Y-%m-%d %H:%M:%S")
 
 box_print("║   ║", "Writing meta.json…")
 with open(os.path.join(plan_dir, "meta.json"), mode="w", encoding="utf-8") as meta_file:
-    meta_file.write(json.dumps(meta, ensure_ascii = False))
+    meta_file.write(json.dumps(meta, ensure_ascii = False, sort_keys = True, indent = 2))
     box_print("║   ║", "Done.")
 
 #####

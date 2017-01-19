@@ -212,6 +212,8 @@ class PyUntisHoliday:
             "name": self.long_name,
             "startDate": self.start_date.make_readable(),
             "endDate": self.end_date.make_readable(),
+            "startDateISO8601": self.start_date.strftime("%Y-%m-%d"),
+            "endDateISO8601": self.end_date.strftime("%Y-%m-%d"),
             "startDateUntis": self.start_date.untis_date,
             "endDateUntis": self.end_date.untis_date
         } 

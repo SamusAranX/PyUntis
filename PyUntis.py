@@ -46,7 +46,7 @@ def load_teachers_from_file(f):
 # "╔╦═╦╗" is a valid box_chars string, for example
 # 0 is left, 1 is center, 2 is right
 def box_print(box_chars, str="", align="left"):
-    OUTPUT_WIDTH = 50
+    OUTPUT_WIDTH = 46
     assert len(box_chars) % 2 == 1
     c_start = len(box_chars) // 2
     c_end = math.ceil(len(box_chars) / 2)

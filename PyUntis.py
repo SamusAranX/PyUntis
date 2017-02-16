@@ -210,11 +210,20 @@ for kl in classes:
     
     timetable_json = {}
     timetable_json["weeks"] = [[] for x in range(3)]
+
     for date in timetable_days:
         day_json = {}
         
-        date_week = math.floor(timetable_days.index(date) / 5) # zero-based week index
+        date_week = math.floor(timetable_days.index(date) / 5) # zero-based week index (for 3 weeks: 0-2)
+
+        # list of all holidays on the given day. should never be larger than 1
+        possible_holidays = [h for h in holidays if h.start_date <= date and h.end_date >= date]
+        if len(possible_holidays) > 0:
+            day_json["holiday"] = possible_holidays[0].to_json()
+            timetable_json["weeks"][date_week].append(day_json)
+            continue # this is a holiday, skip it
         
+        # not actually sure that with the holiday check above, this is still needed
         day_lessons = sorted([t for t in timetable if t.date == date], key=lambda l: l.start_time)
         if len(day_lessons) == 0:
             continue # skip days without any lessons

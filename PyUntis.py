@@ -200,12 +200,17 @@ def main():
 	clamped_end_date = min(current_schoolyear.end_date, week3_fri)
 
 	box_print("║   ║", "Requesting substitution data…")
+	substitutions = None
+	substitutions_denied = False
 	try:
 		# Turns out that some schools restrict access to substitutions for some reason, so this has to be in a try-except block
 		substitutions = s.getSubstitutions(start_date = clamped_start_date.untis_date, end_date = clamped_end_date.untis_date)
 	except PyUntisError as e:
 		box_print("║   ║", str(e))
-		substitutions = None
+		if e.error_id == -8509:
+			substitutions_denied = True
+	except:
+		box_print("║   ║", "Unknown error fetching substitutions")
 
 	for kl in classes:
 		box_print("║   ║", "Requesting timetables for {0}…".format(kl))
@@ -263,6 +268,8 @@ def main():
 					timetable_json["substitutions"].append(subst_json)
 		else:
 			box_print("║   ║", "No substitutions to write!")
+			if substitutions_denied:
+				timetable_json["substitutionDenied"] = True
 			
 		timetable_dumped = json.dumps(timetable_json, ensure_ascii=False)
 		plan_file_name = "{0}.json".format(kl.id)

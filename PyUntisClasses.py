@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3.6
 # -*- coding: utf-8 -*-
 
 from datetime import datetime
@@ -7,8 +7,11 @@ from collections.abc import Sequence
 class PyUntisError(Exception):
 	WEBUNTIS_ERRORS = {
 		-7004: "Date out of bounds",
+		-8500: "Invalid school name",
 		-8509: "Access to substitutions denied",
-		-32601: "Method not found"
+		-8998: "Worthless error message",
+		-32601: "Method not found",
+		-32700: "Parse error: No content to map due to end-of-input"
 	}
 	
 	def __init__(self, errorJSON):
@@ -107,11 +110,16 @@ class PyUntisTime:
 		return "{0} (\"{1}\")".format(self.time.strftime(self.READABLE_TIME_FMT), self.untis_time)
 
 class PyUntisSchool:
-	def __init__(self, school_json):
-		self.display_name = school_json["displayName"]
-		self.login_name = school_json["loginName"]
-		self.address = school_json["address"]
-		self.server = school_json["server"]
+	def __init__(self, display_name, login_name, address, server):
+		self.display_name = display_name
+		self.login_name = login_name
+		self.address = address
+		self.server = server
+
+	@classmethod
+	def from_json(cls, school_json):
+		s = cls(school_json["displayName"], school_json["loginName"], school_json["address"], school_json["server"])
+		return s
 		
 	def __repr__(self):
 		return "{0} ({1})".format(self.display_name, self.address)

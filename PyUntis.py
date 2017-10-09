@@ -5,6 +5,7 @@ from urllib.parse import urlencode
 from datetime import datetime, timedelta, date
 import sys
 import os
+from os.path import expanduser, join
 import math
 import json
 import locale # This ensures that lists with non-ASCII characters will still be properly sorted
@@ -47,7 +48,7 @@ def load_teachers_from_file(f):
 # len(box_chars) MUST be an odd number
 # "╔╦═╦╗" is a valid box_chars string, for example
 # 0 is left, 1 is center, 2 is right
-def box_print(box_chars, str="", align="left"):
+def box_print(box_chars, input_str="", align="left"):
 	OUTPUT_WIDTH = 46
 	assert len(box_chars) % 2 == 1
 	c_start = len(box_chars) // 2
@@ -55,59 +56,66 @@ def box_print(box_chars, str="", align="left"):
 	chars_start = box_chars[:c_start]
 	chars_end = box_chars[c_end:]
 	char_center = box_chars[c_start:c_end]
-	
+
+	padding = 2
+	if not char_center.strip() or not input_str:
+		padding = 0
+
 	transformed_str = ""
 	if align == "left":
-		transformed_str = str.ljust(OUTPUT_WIDTH - len(chars_start + chars_end), char_center)
+		input_str = input_str.ljust(len(input_str)+padding, " ")
+		transformed_str = input_str.ljust(OUTPUT_WIDTH - len(chars_start + chars_end), char_center)
 	elif align == "center":
-		transformed_str = str.center(OUTPUT_WIDTH - len(chars_start + chars_end), char_center)
+		input_str = input_str.center(len(input_str)+padding, " ")
+		transformed_str = input_str.center(OUTPUT_WIDTH - len(chars_start + chars_end), char_center)
 	elif align == "right":
-		transformed_str = str.rjust(OUTPUT_WIDTH - len(chars_start + chars_end), char_center)
+		input_str = input_str.rjust(len(input_str)+padding, " ")
+		transformed_str = input_str.rjust(OUTPUT_WIDTH - len(chars_start + chars_end), char_center)
 	else:
 		raise ValueError("align must either be \"left\", \"center\" or \"right\".")
 		
 	print(chars_start + transformed_str + chars_end)
-   
-def main():
-	tick = datetime.now()
 
-	s = PyUntisSession()
+def handle_school(school, defaults, session):
+	results = session.searchSchools("Düren")
+	box_print("╠═╣", school["display_name"] if "display_name" in school else school["name"], "center")
 
-	box_print("╔╦═╦╗")
-	box_print("║║ ║║", "{0} - {1}".format(s.USER_AGENT.upper(), tick.strftime("%d.%m.%Y %H:%M:%S")), "center")
-	box_print("╠╩═╩╣")
-
-	box_print("║   ║", "Loading config…")
-
-	config_json = open("config.json", "r", encoding="utf8")
-	config = json.load(config_json)
-	config_json.close()
-
-	try:
-		locale.setlocale(locale.LC_ALL, config["locale"])
-	except:
-		box_print("║   ║", "Unsupported locale: " + config["locale"])
-
-	box_print("║   ║", "Loaded.")
-
-	plan_dir = os.path.expanduser(config["plan_dir"])
+	plan_dir = expanduser(school["plan_dir"])
 	os.makedirs(plan_dir, exist_ok=True)
+
+	school_locale = school["locale"] if "locale" in school else defaults["locale"]
+	try:
+		box_print("║   ║", f"Setting locale {school_locale}.")
+		locale.setlocale(locale.LC_ALL, school["locale"])
+	except:
+		box_print("║   ║", f"Unsupported locale {school_locale}.")
 
 	try:
 		import icu
-		collator = icu.Collator.createInstance(icu.Locale(config["locale"]))
+		collator = icu.Collator.createInstance(icu.Locale(school_locale))
 	except ImportError:
 		box_print("║   ║", "Install PyICU for better list sorting.")
 
-	box_print("║   ║", "Looking for school and authenticating…")
+	if "server" not in school:
+		box_print("║   ║", "Looking for school and authenticating…")
 
-	schools = s.searchSchools(config["school"]["name"])
-	assert len(schools) >= 1, "Can't find school"
+		results = session.searchSchools(school["name"])
+		if len(results) < 1:
+			box_print("║   ║", "Can't find school. Skipping.")
+			return
 
-	auth = s.authenticate(schools[0], config["school"]["username"], config["school"]["password"])
+		auth_school = results[0]
+	else:
+		box_print("║   ║", "Server needs TOTP, skipping for now.")
+		return
+
+		box_print("║   ║", "Server already defined, authenticating…")
+		auth_school = PyUntisSchool(school["display_name"], school["name"], "", school["server"])
+
+	auth = session.authenticate(auth_school, school["username"], school["password"] if "password" in school else None)
 
 	box_print("║   ║", "Authenticated.")
-	box_print("╠═╣", "meta.json".upper(), "center")
+	box_print("╠═╣", "meta.json", "center")
 
 	#####
 	# Part where we create meta.json
@@ -137,17 +145,17 @@ def main():
 
 	# Add school year information to meta object
 	box_print("║   ║", "Requesting school year information…")
-	current_schoolyear = s.getCurrentSchoolyear()
+	current_schoolyear = session.getCurrentSchoolyear()
 	meta["currentSchoolyear"] = current_schoolyear.to_json()
 
 	# Add holiday information to meta object
 	box_print("║   ║", "Requesting holiday information…")
-	holidays = s.getHolidays()
+	holidays = session.getHolidays()
 	meta["holidays"] = [h.to_json() for h in holidays]
 
 	# Add school classes and IDs to meta object
 	box_print("║   ║", "Requesting class information…")
-	classes = s.getKlassen()
+	classes = session.getKlassen()
 	try:
 		classes_sorted = sorted(classes, key=lambda kl: collator.getSortKey(kl.name.lower()))
 	except NameError:
@@ -161,20 +169,23 @@ def main():
 
 	# Add teachers to meta object
 	box_print("║   ║", "Requesting teacher information…")
-	# teachers = s.getTeachers()
-	teachers = load_teachers_from_file("teachers.json")
+	teachers = session.getTeachers()
+
+	if "teachers" in school:
+		teachers += load_teachers_from_file(school["teachers"])
+
 	meta["teachers"] = {}
 	for t in teachers:
 		meta["teachers"][t.id] = t.name
 		
 	box_print("║   ║", "Requesting timegrid information…")
-	timegrid = s.getTimegridUnits()
+	timegrid = session.getTimegridUnits()
 	meta["timegrid"] = []
 	for tg in timegrid:
 		meta["timegrid"].insert(tg.day, tg.to_json())
 
 	box_print("║   ║", "Adding last update times…")
-	last_update = s.getLatestImportTime()
+	last_update = session.getLatestImportTime()
 	meta["lastUpdated"] = last_update.strftime("%d.%m.%Y %H:%M:%S")
 	meta["lastUpdatedISO8601"] = last_update.strftime("%Y-%m-%d %H:%M:%S")
 
@@ -183,7 +194,7 @@ def main():
 	meta["lastGeneratedISO8601"] = lastGeneratedDate.strftime("%Y-%m-%d %H:%M:%S")
 
 	box_print("║   ║", "Writing meta.json…")
-	with open(os.path.join(plan_dir, "meta.json"), mode="w", encoding="utf-8") as meta_file:
+	with open(join(plan_dir, "meta.json"), mode="w", encoding="utf-8") as meta_file:
 		meta_file.write(json.dumps(meta, ensure_ascii = False, sort_keys = True, indent = 2))
 		box_print("║   ║", "Done.")
 
@@ -191,7 +202,7 @@ def main():
 	# Part where we create timetable files for the web interface
 	###############
 
-	box_print("╠═╣", "Timetable JSON files".upper(), "center")
+	box_print("╠═╣", "Timetable JSON files", "center")
 
 	week3_fri = get_other_weekday(weekday_index = 4, week_index = 2) # Get the last school day of the week after next
 
@@ -204,7 +215,7 @@ def main():
 	substitutions_denied = False
 	try:
 		# Turns out that some schools restrict access to substitutions for some reason, so this has to be in a try-except block
-		substitutions = s.getSubstitutions(start_date = clamped_start_date.untis_date, end_date = clamped_end_date.untis_date)
+		substitutions = session.getSubstitutions(start_date = clamped_start_date.untis_date, end_date = clamped_end_date.untis_date)
 	except PyUntisError as e:
 		box_print("║   ║", str(e))
 		if e.error_id == -8509:
@@ -215,7 +226,7 @@ def main():
 	for kl in classes:
 		box_print("║   ║", "Requesting timetables for {0}…".format(kl))
 		
-		timetable = s.getTimetableCustom(kl.id, PyUntisElementType.CLASS, 
+		timetable = session.getTimetableCustom(kl.id, PyUntisElementType.CLASS, 
 			start_date = clamped_start_date.untis_date, end_date = clamped_end_date.untis_date,
 			showInfo = True, showSubstText = True, showLsText = True, showLsNumber = True, showStudentgroup = True)
 			
@@ -273,18 +284,43 @@ def main():
 			
 		timetable_dumped = json.dumps(timetable_json, ensure_ascii=False)
 		plan_file_name = "{0}.json".format(kl.id)
-		with open(os.path.join(plan_dir, plan_file_name), mode="w", encoding="utf-8") as plan_file:
+		with open(join(plan_dir, plan_file_name), mode="w", encoding="utf-8") as plan_file:
 			plan_file.write(timetable_dumped)
 			box_print("║   ║", "{0} written.".format(plan_file_name), "right")
 			
 	box_print("╠╦═╦╣")
 	box_print("║║ ║║", "Logging out…", "center")
+	box_print("╠╩═╩╣")
 
-	s.logout()
+	session.logout()
+   
+def main():
+	tick = datetime.now()
+
+	s = PyUntisSession()
+
+	box_print("╔╦═╦╗")
+	box_print("║║ ║║", "{0} - {1}".format(s.USER_AGENT, tick.strftime("%d.%m.%Y %H:%M:%S")), "center")
+	box_print("╠╩═╩╣")
+
+	box_print("║   ║", "Loading config…")
+	box_print("║   ║", "Loaded.")
+
+	config_json = open("config.json", "r", encoding="utf8")
+	config = json.load(config_json)
+	config_json.close()
+
+	defaults = {
+		"locale": locale.getlocale(locale.LC_ALL)
+	}
+
+	for school in config["schools"]:
+		handle_school(school, defaults, session = s)
 
 	tock = datetime.now()
 	diff = tock - tick
-
+	
+	box_print("╠╦═╦╣")
 	box_print("║║ ║║", "Finished in {0}".format(diff), "center")
 	box_print("╚╩═╩╝")
 

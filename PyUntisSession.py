@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3.6
 # -*- coding: utf-8 -*-
 
 from urllib.parse import urlencode
@@ -15,7 +15,7 @@ class PyUntisSession:
 	JSON_API_FORMAT = "https://{0}/WebUntis/jsonrpc.do{1}"
 	HTML_API_FORMAT = "https://{0}/WebUntis/Timetable.do"
 	
-	USER_AGENT = "PyUntis 2.0"
+	USER_AGENT = "PyUntis 3.0"
 	
 	def __init__(self):
 		self.session = requests.Session()
@@ -36,6 +36,8 @@ class PyUntisSession:
 		
 	def searchSchools(self, searchString):
 		payload = self._build_payload("searchSchool", shitty_untis_api_hack=True, search = searchString)
+
+		# print(payload)
 		
 		r = self.session.post(self.SCHOOLQUERY_URL, json = payload)
 		response = r.json()
@@ -44,10 +46,12 @@ class PyUntisSession:
 			raise PyUntisError(response["error"])
 			
 		schools = response["result"]["schools"]
-		return [PyUntisSchool(s) for s in schools]
+		return [PyUntisSchool.from_json(s) for s in schools]
 			
 	def _post(self, payload, **url_params):
-		json_api_url = self.JSON_API_FORMAT.format(self.servername, "?" + urlencode(url_params))
+		json_api_url = self.JSON_API_FORMAT.format(self.servername, "?" + urlencode(url_params) if url_params else "")
+
+		# print(json_api_url, payload)
 		
 		r = self.session.post(json_api_url, json = payload)
 		response = r.json()
@@ -60,12 +64,17 @@ class PyUntisSession:
 		else:
 			print(response)
 		
-	def authenticate(self, school, username, password):
+	def authenticate(self, school, username, password=None):
 		self.servername = school.server
 		payload = self._build_payload("authenticate", user=username, password=password, client=self.USER_AGENT)
 		response = self._post(payload, school = school.login_name)
 		
 		return PyUntisAuthResult(response)
+
+	def fake_auth(self, school, username, password=None):
+		self.servername = school.server
+
+		return True
 		
 	def logout(self):
 		payload = self._build_payload("logout")

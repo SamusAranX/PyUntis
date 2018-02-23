@@ -33,6 +33,7 @@ class PyUntisElementType:
 class PyUntisDate:
 	UNTIS_DATE_FMT = "%Y%m%d"
 	READABLE_DATE_FMT = "%d.%m.%Y"
+	ISO8601_FMT = "%Y-%m-%d"
 	
 	def __init__(self, date=None, untis_date=None):
 		if date is None and untis_date is None:
@@ -45,6 +46,9 @@ class PyUntisDate:
 		elif untis_date is not None:
 			self.untis_date = str(untis_date)
 			self.date = datetime.strptime(self.untis_date, self.UNTIS_DATE_FMT)
+
+	def iso8601(self):
+		return self.date.strftime(self.ISO8601_FMT)
 			
 	def make_readable(self):
 		return self.date.strftime(self.READABLE_DATE_FMT)
@@ -68,7 +72,7 @@ class PyUntisDate:
 		return int(self.untis_date)
 			
 	def __repr__(self):
-		return "{0} (\"{1}\")".format(self.date.strftime(self.READABLE_DATE_FMT), self.untis_date)
+		return self.untis_date
 		
 class PyUntisTime:
 	UNTIS_TIME_FMT = "%H%M"
@@ -307,6 +311,10 @@ class PyUntisTimetableEntry:
 		self.student_group = tt_entry_json.get("sg")
 		self.lesson_number = tt_entry_json.get("lsnumber")
 		self.subst_text = tt_entry_json.get("substText")
+
+	@classmethod
+	def from_values(cls, stuff):
+		return 
 		
 	def to_json(self):
 		entry_json = {}            

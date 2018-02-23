@@ -1,13 +1,15 @@
 #!/usr/bin/env python3.6
 # -*- coding: utf-8 -*-
 
+import json # debug
+
 from urllib.parse import urlencode
 from datetime import datetime
 from PyUntisClasses import *
 try:
 	import requests
 except ImportError:
-	print("PyUntis is built on Requests. You'll need it if you want to use PyUntis.")
+	print("PyUntis requires Requests. You'll need it if you want to use PyUntis.")
 	raise
 
 class PyUntisSession:
@@ -57,7 +59,8 @@ class PyUntisSession:
 		response = r.json()
 		
 		if "error" in response:
-			raise PyUntisError(response["error"])
+			return []
+			# raise PyUntisError(response["error"])
 		
 		if "result" in response:
 			return response["result"]

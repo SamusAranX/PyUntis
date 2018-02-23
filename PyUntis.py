@@ -106,9 +106,6 @@ def handle_school(school, defaults, session):
 
 		auth_school = results[0]
 	else:
-		box_print("║   ║", "Server needs TOTP, skipping for now.")
-		return
-
 		box_print("║   ║", "Server already defined, authenticating…")
 		auth_school = PyUntisSchool(school["display_name"], school["name"], "", school["server"])
 

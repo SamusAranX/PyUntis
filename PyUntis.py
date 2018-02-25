@@ -122,7 +122,7 @@ def handle_school(school, defaults, session):
 
 	# Set up the object itself, along with full and small date formats
 	meta = {}
-	meta_long = "{0}<br>{1}"
+	meta_long = "{0},<br>{1}"
 	meta_short = "{0}.,<br>{1}"
 
 	# Get the first days of this week and the next two weeks

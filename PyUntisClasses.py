@@ -86,6 +86,13 @@ class PyUntisTime:
 			self.time = time
 			self.untis_time = datetime.strftime(self.UNTIS_TIME_FMT, time)
 		elif untis_time is not None:
+			# this is a dirty workaround for the shitty untis API's behavior
+			# times are stored as ints, so 7:55 becomes 755 and so on
+			# this also means that 00:00 just becomes 0, defeating all format strings
+			# the untis API is bad and their creators should feel bad for not making it good
+			if untis_time == 0:
+				untis_time = "0000"
+
 			self.untis_time = str(untis_time)
 			self.time = datetime.strptime(self.untis_time, self.UNTIS_TIME_FMT)
 			

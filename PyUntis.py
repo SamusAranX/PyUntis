@@ -308,7 +308,7 @@ def main():
 	config_json.close()
 
 	defaults = {
-		"locale": locale.getlocale(locale.LC_ALL)
+		"locale": locale.getdefaultlocale()
 	}
 
 	for school in config["schools"]:

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3.6
 # -*- coding: utf-8 -*-
 
 from urllib.parse import urlencode
@@ -78,9 +78,9 @@ def box_print(box_chars, input_str="", align="left"):
 
 def handle_school(school, defaults, session):
 	results = session.searchSchools("Düren")
-	box_print("╠═╣", school["display_name"] if "display_name" in school else school["name"], "center")
+	box_print("╠═╣", school["displayName"] if "displayName" in school else school["name"], "center")
 
-	plan_dir = expanduser(school["plan_dir"])
+	plan_dir = expanduser(school["planDir"])
 	os.makedirs(plan_dir, exist_ok=True)
 
 	school_locale = school["locale"] if "locale" in school else defaults["locale"]
@@ -107,9 +107,13 @@ def handle_school(school, defaults, session):
 		auth_school = results[0]
 	else:
 		box_print("║   ║", "Server already defined, authenticating…")
-		auth_school = PyUntisSchool(school.get("display_name"), school["name"], "", school["server"])
+		auth_school = PyUntisSchool(school.get("displayName"), school["name"], "", school["server"])
 
-	auth = session.authenticate(auth_school, school["username"], school["password"] if "password" in school else None)
+	try:
+		auth = session.authenticate(auth_school, school["username"], school["password"] if "password" in school else None)
+	except PyUntisAuthError:
+		box_print("║   ║", "Invalid login credentials.")
+		return
 
 	box_print("║   ║", "Authenticated.")
 	box_print("╠═╣", "meta.json", "center")
@@ -154,8 +158,10 @@ def handle_school(school, defaults, session):
 	box_print("║   ║", "Requesting class information…")
 	classes = session.getKlassen()
 	try:
+		# PyICU is available
 		classes_sorted = sorted(classes, key=lambda kl: collator.getSortKey(kl.name.lower()))
 	except NameError:
+		# PyICU is not installed, fallback to regular sort
 		classes_sorted = sorted(classes, key=lambda kl: kl.name.lower())
 		
 	meta["classes"] = {

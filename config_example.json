@@ -1,9 +1,21 @@
 {
-	"school": {
-		"name": "Max-Mustermann-Schule",
-		"username": "admin",
-		"password": "swordfish"
-	},
-	"plan_dir": "/var/www/plan/plans",
-	"locale": "de_DE.UTF-8"
+	"schools": [
+		{
+			"name": "Max-Mustermann-Gymnasium",
+			"displayName": "School using the search feature",
+			"username": "user",
+			"password": "hunter2",
+			"planDir": "/var/www/plan1/plans",
+			"locale": "de_DE.UTF-8"
+		},
+		{
+			"name": "School Login Name",
+			"displayName": "School with predefined server",
+			"server": "mese.webuntis.com",
+			"username": "admin",
+			"password": "swordfish",
+			"planDir": "/var/www/plan2/plans",
+			"locale": "de_DE.UTF-8"
+		}
+	]
 }

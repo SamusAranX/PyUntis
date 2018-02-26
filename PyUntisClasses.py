@@ -22,6 +22,9 @@ class PyUntisError(Exception):
 			
 	def __str__(self):
 		return "{0}: {1}".format(self.error_id, self.error_msg)
+
+class PyUntisAuthError(Exception):
+	pass
 		
 class PyUntisElementType:
 	C = CLASS = 1
@@ -137,6 +140,9 @@ class PyUntisSchool:
 		
 class PyUntisAuthResult:
 	def __init__(self, auth_json):
+		if auth_json == []:
+			raise PyUntisAuthError("Invalid login credentials.")
+
 		self.session_id = auth_json["sessionId"]
 		self.person_type = auth_json["personType"]
 		self.person_id = auth_json["personId"]

@@ -1,2 +1,2 @@
-cd /root/PyUntis/
-stdbuf -oL python3 PyUntis.py > plan.log 2>&1
+cd "$(dirname "$0")"
+python3.6 PyUntis.py

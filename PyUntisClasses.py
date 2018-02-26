@@ -129,11 +129,11 @@ class PyUntisSchool:
 
 	@classmethod
 	def from_json(cls, school_json):
-		s = cls(school_json["displayName"], school_json["loginName"], school_json["address"], school_json["server"])
+		s = cls(school_json.get("displayName"), school_json["loginName"], school_json["address"], school_json["server"])
 		return s
 		
 	def __repr__(self):
-		return "{0} ({1})".format(self.display_name, self.address)
+		return "{0} ({1})".format(self.display_name or self.login_name, self.address)
 		
 class PyUntisAuthResult:
 	def __init__(self, auth_json):

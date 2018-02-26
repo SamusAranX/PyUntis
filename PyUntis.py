@@ -107,7 +107,7 @@ def handle_school(school, defaults, session):
 		auth_school = results[0]
 	else:
 		box_print("║   ║", "Server already defined, authenticating…")
-		auth_school = PyUntisSchool(school["display_name"], school["name"], "", school["server"])
+		auth_school = PyUntisSchool(school.get("display_name"), school["name"], "", school["server"])
 
 	auth = session.authenticate(auth_school, school["username"], school["password"] if "password" in school else None)
 

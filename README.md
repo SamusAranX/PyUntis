@@ -12,6 +12,7 @@ I use it in conjunction with [`PyUntis-Site`](https://github.com/SamusAranX/PyUn
 
 * Python 3.6
 * [`requests`](http://docs.python-requests.org/en/master/)
+* [`PyICU`](https://pypi.python.org/pypi/PyICU/) (optional, provides better, locale-independent sorting methods)
 
 ## Usage
 

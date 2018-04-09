@@ -73,11 +73,6 @@ class PyUntisSession:
 		response = self._post(payload, school = school.login_name)
 		
 		return PyUntisAuthResult(response)
-
-	def fake_auth(self, school, username, password=None):
-		self.servername = school.server
-
-		return True
 		
 	def logout(self):
 		payload = self._build_payload("logout")

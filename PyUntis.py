@@ -318,6 +318,11 @@ def main():
 	}
 
 	for school in config["schools"]:
+		school_name = school["name"]
+		if school_name.startswith("#"):
+			box_print("║   ║", f"Skipping {school_name[1:]}.")
+			continue
+
 		handle_school(school, defaults, session = s)
 
 	tock = datetime.now()

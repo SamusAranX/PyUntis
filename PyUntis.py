@@ -236,23 +236,36 @@ def handle_school(school, defaults, session):
 		timetable_days = [PyUntisDate(d) for d in daterange(clamped_start_date.date, clamped_end_date.date) if d.weekday() < 5]
 		
 		timetable_json = {}
+
+		timetable_json["firstDay"] = {
+			"untis": str(clamped_start_date.untis_date),
+			"iso8601": clamped_start_date.iso8601(),
+			"readable": clamped_start_date.make_readable()
+		}
+
 		timetable_json["weeks"] = [[] for x in range(3)]
 
-		for date in timetable_days:
+		# date_idx goes from 0 to 14 (3 weeks)
+		for date_idx in range(len(timetable_days)):
+			date = timetable_days[date_idx]
+
+			week_idx = math.floor(date_idx / 5) # zero-based week index (for 3 weeks: 0-2)
+
 			day_json = {}
-			
-			date_week = math.floor(timetable_days.index(date) / 5) # zero-based week index (for 3 weeks: 0-2)
 
 			# list of all holidays on the given day. should never be larger than 1
 			possible_holidays = [h for h in holidays if h.start_date <= date and h.end_date >= date]
 			if len(possible_holidays) > 0:
+				# append holiday to week
 				day_json["holiday"] = possible_holidays[0].to_json()
-				timetable_json["weeks"][date_week].append(day_json)
+				timetable_json["weeks"][week_idx].append(day_json)
 				continue # this is a holiday, skip it
 			
 			# not actually sure that with the holiday check above, this is still needed
 			day_lessons = sorted([t for t in timetable if t.date == date], key=lambda l: l.start_time)
 			if len(day_lessons) == 0:
+				# append "empty" day to week
+				timetable_json["weeks"][week_idx].append(day_json)
 				continue # skip days without any lessons
 			
 			date_timeunits = timegrid[date.date.weekday()]
@@ -271,7 +284,7 @@ def handle_school(school, defaults, session):
 				
 				last_start_time = lesson.start_time.untis_time
 
-			timetable_json["weeks"][date_week].append(day_json)
+			timetable_json["weeks"][week_idx].append(day_json)
 		
 		if substitutions:
 			class_substitutions = [subst for subst in substitutions if kl in subst.classes]
@@ -282,8 +295,7 @@ def handle_school(school, defaults, session):
 					timetable_json["substitutions"].append(subst_json)
 		else:
 			box_print("║   ║", "No substitutions to write!")
-			if substitutions_denied:
-				timetable_json["substitutionDenied"] = True
+			timetable_json["substitutionDenied"] = substitutions_denied
 			
 		timetable_dumped = json.dumps(timetable_json, ensure_ascii=False)
 		plan_file_name = "{0}.json".format(kl.id)

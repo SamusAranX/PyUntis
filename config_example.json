@@ -10,11 +10,10 @@
 		},
 		{
 			"name": "School Login Name",
-			"displayName": "School with predefined server and teacher file",
+			"displayName": "School with predefined server",
 			"server": "mese.webuntis.com",
 			"username": "admin",
 			"password": "swordfish",
-			"teachers": "teachers_example.json",
 			"planDir": "/var/www/plan2/plans",
 			"locale": "de_DE.UTF-8"
 		}

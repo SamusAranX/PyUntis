@@ -13,11 +13,12 @@ except ImportError:
 	raise
 
 class PyUntisSession:
-	SCHOOLQUERY_URL = "https://query.webuntis.com/schoolquery/?school="
+	SCHOOLQUERY_URL = "https://query.webuntis.com/schoolquery?m=searchSchool&v=i2.5.2"
 	JSON_API_FORMAT = "https://{0}/WebUntis/jsonrpc.do{1}"
 	HTML_API_FORMAT = "https://{0}/WebUntis/Timetable.do"
 	
-	USER_AGENT = "PyUntis 3.0"
+# 	USER_AGENT = "PyUntis 3.0"
+	USER_AGENT = "Untis/2.5.2 (at.grupet.mobile.um; build:1; iOS 13.0.0) Alamofire/4.8.1"
 	
 	def __init__(self):
 		self.session = requests.Session()
@@ -31,15 +32,15 @@ class PyUntisSession:
 		
 		params = { k:v for k,v in params.items() if v is not None }
 		
-		payload = { "method": method, "id": self.requestID, "jsonrpc": "2.0" }
+		payload = { "method": method, "id": "UntisMobileiOS", "jsonrpc": "2.0" }
 		if params:
 			payload["params"] = [params] if shitty_untis_api_hack else params
 		return payload
 		
 	def searchSchools(self, searchString):
-		payload = self._build_payload("searchSchool", shitty_untis_api_hack=True, search = searchString)
+		payload = self._build_payload("searchSchool", shitty_untis_api_hack=False, search = searchString)
 
-		# print(payload)
+		print(payload)
 		
 		r = self.session.post(self.SCHOOLQUERY_URL, json = payload)
 		response = r.json()

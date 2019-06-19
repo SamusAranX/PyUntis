@@ -42,7 +42,7 @@ def load_teachers_from_file(f):
 			"id": key,
 			"name": t_json[key]
 		} for key in t_keys]
-		
+
 		return [PyUntisTeacher(t) for t in t_list]
 
 # len(box_chars) MUST be an odd number
@@ -73,11 +73,10 @@ def box_print(box_chars, input_str="", align="left"):
 		transformed_str = input_str.rjust(OUTPUT_WIDTH - len(chars_start + chars_end), char_center)
 	else:
 		raise ValueError("align must either be \"left\", \"center\" or \"right\".")
-		
+
 	print(chars_start + transformed_str + chars_end)
 
 def handle_school(school, defaults, session):
-	results = session.searchSchools("Düren")
 	box_print("╠═╣", school["displayName"] if "displayName" in school else school["name"], "center")
 
 	plan_dir = expanduser(school["planDir"])
@@ -163,7 +162,7 @@ def handle_school(school, defaults, session):
 	except NameError:
 		# PyICU is not installed, fallback to regular sort
 		classes_sorted = sorted(classes, key=lambda kl: kl.name.lower())
-		
+
 	meta["classes"] = {
 		"names": [kl.name for kl in classes_sorted],
 		"ids": [kl.id for kl in classes_sorted],
@@ -180,7 +179,7 @@ def handle_school(school, defaults, session):
 	meta["teachers"] = {}
 	for t in teachers:
 		meta["teachers"][t.id] = t.name
-		
+
 	box_print("║   ║", "Requesting timegrid information…")
 	timegrid = session.getTimegridUnits()
 	meta["timegrid"] = []
@@ -228,13 +227,13 @@ def handle_school(school, defaults, session):
 
 	for kl in classes:
 		box_print("║   ║", "Requesting timetables for {0}…".format(kl))
-		
-		timetable = session.getTimetableCustom(kl.id, PyUntisElementType.CLASS, 
+
+		timetable = session.getTimetableCustom(kl.id, PyUntisElementType.CLASS,
 			start_date = clamped_start_date.untis_date, end_date = clamped_end_date.untis_date,
 			showInfo = True, showSubstText = True, showLsText = True, showLsNumber = True, showStudentgroup = True)
-			
+
 		timetable_days = [PyUntisDate(d) for d in daterange(clamped_start_date.date, clamped_end_date.date) if d.weekday() < 5]
-		
+
 		timetable_json = {}
 
 		timetable_json["firstDay"] = {
@@ -260,20 +259,20 @@ def handle_school(school, defaults, session):
 				day_json["holiday"] = possible_holidays[0].to_json()
 				timetable_json["weeks"][week_idx].append(day_json)
 				continue # this is a holiday, skip it
-			
+
 			# not actually sure that with the holiday check above, this is still needed
 			day_lessons = sorted([t for t in timetable if t.date == date], key=lambda l: l.start_time)
 			if len(day_lessons) == 0:
 				# append "empty" day to week
 				timetable_json["weeks"][week_idx].append(day_json)
 				continue # skip days without any lessons
-			
+
 			date_timeunits = timegrid[date.date.weekday()]
-			
+
 			last_start_time = 0
 			for lesson in day_lessons:
 				lesson_json = lesson.to_json()
-				
+
 				# note for later: test.sort(function(a, b) { return a.localeCompare(b);})
 				if last_start_time != lesson.start_time.untis_time:
 					# This is a new time slot, create new lesson
@@ -281,11 +280,11 @@ def handle_school(school, defaults, session):
 				else:
 					# This time slot already exists, append lesson
 					day_json[lesson.start_time.untis_time].append(lesson_json)
-				
+
 				last_start_time = lesson.start_time.untis_time
 
 			timetable_json["weeks"][week_idx].append(day_json)
-		
+
 		if substitutions:
 			class_substitutions = [subst for subst in substitutions if kl in subst.classes]
 			timetable_json["substitutions"] = []
@@ -296,19 +295,19 @@ def handle_school(school, defaults, session):
 		else:
 			box_print("║   ║", "No substitutions to write!")
 			timetable_json["substitutionDenied"] = substitutions_denied
-			
+
 		timetable_dumped = json.dumps(timetable_json, ensure_ascii=False)
 		plan_file_name = "{0}.json".format(kl.id)
 		with open(join(plan_dir, plan_file_name), mode="w", encoding="utf-8") as plan_file:
 			plan_file.write(timetable_dumped)
 			box_print("║   ║", "{0} written.".format(plan_file_name), "right")
-			
+
 	box_print("╠╦═╦╣")
 	box_print("║║ ║║", "Logging out…", "center")
 	box_print("╠╩═╩╣")
 
 	session.logout()
-   
+
 def main():
 	tick = datetime.now()
 
@@ -339,7 +338,7 @@ def main():
 
 	tock = datetime.now()
 	diff = tock - tick
-	
+
 	box_print("╠╦═╦╣")
 	box_print("║║ ║║", "Finished in {0}".format(diff), "center")
 	box_print("╚╩═╩╝")
